@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
-const csv = require('csv-parser');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const natural = require('natural');
 const faiss = require('faiss-node');
+const fs = require('fs');
+const path = require('path');
+const csv = require('csv-parser');
 
 // Initialize the Generative AI with API key
 const GEMINI_API_KEY = 'AIzaSyDLRh5LHcyYpxQx6oHSKlsX_tj1Xap0Ods';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash',
+  model: 'gemini-pro',
   generationConfig: { 
     maxOutputTokens: 800,
     temperature: 0.7
@@ -37,12 +37,28 @@ async function initializeSystem() {
   if (isInitialized) return;
   
   try {
+    console.log('Starting system initialization...');
+    console.log('Dataset path:', datasetPath);
+    
+    // Check if dataset file exists
+    if (!fs.existsSync(datasetPath)) {
+      throw new Error(`Dataset file not found at ${datasetPath}`);
+    }
+    
     // Load the dataset
     dataset = await loadDataset();
     console.log(`Loaded ${dataset.length} entries from dataset`);
     
+    if (dataset.length === 0) {
+      throw new Error('Dataset is empty');
+    }
+    
     // Prepare TF-IDF
     dataset.forEach((entry, index) => {
+      if (!entry.query || !entry.response) {
+        console.warn(`Invalid entry at index ${index}:`, entry);
+        return;
+      }
       const processedQuery = preprocessText(entry.query);
       tfidf.addDocument(processedQuery);
       documentMap[index] = entry;
@@ -51,6 +67,7 @@ async function initializeSystem() {
     // Load FAISS index if it exists
     if (fs.existsSync(faissIndexPath)) {
       try {
+        console.log('Loading existing FAISS index...');
         faissIndex = await faiss.IndexFlatL2.fromFile(faissIndexPath);
         console.log("Loaded existing FAISS index");
       } catch (error) {
@@ -58,6 +75,7 @@ async function initializeSystem() {
         await createFaissIndex();
       }
     } else {
+      console.log('Creating new FAISS index...');
       await createFaissIndex();
     }
     
@@ -72,20 +90,35 @@ async function initializeSystem() {
 async function loadDataset() {
   return new Promise((resolve, reject) => {
     const results = [];
+    console.log('Loading dataset from CSV...');
+    
     fs.createReadStream(datasetPath)
       .pipe(csv())
       .on('data', (data) => {
+        // Log the first few entries to verify structure
+        if (results.length < 3) {
+          console.log('Sample data entry:', data);
+        }
+        
         // Rename columns if needed based on your CSV structure
         const entry = {
           query: data.Query || data.query,
           response: data.Response || data.response
         };
+        
+        if (!entry.query || !entry.response) {
+          console.warn('Invalid entry:', data);
+          return;
+        }
+        
         results.push(entry);
       })
       .on('end', () => {
+        console.log(`Finished loading ${results.length} entries`);
         resolve(results);
       })
       .on('error', (error) => {
+        console.error('Error reading CSV:', error);
         reject(error);
       });
   });
@@ -184,20 +217,40 @@ async function generateTherapyResponse(userQuery, context) {
 }
 
 // API Endpoints
-router.post('/query', async (req, res) => {
+router.post('/', async (req, res) => {
+  console.log('Therapy route hit');
+  console.log('Request method:', req.method);
+  console.log('Request path:', req.path);
+  console.log('Request body:', req.body);
+  console.log('Request headers:', req.headers);
+  
   try {
+    console.log('Received therapy query request');
+    console.log('Request body:', req.body);
+    
+    if (!req.body || !req.body.query) {
+      console.error('Invalid request body:', req.body);
+      return res.status(400).json({ error: 'Query is required in request body' });
+    }
+    
     await initializeSystem();
     
     const { query } = req.body;
     if (!query || query.trim() === '') {
+      console.log('Empty query received');
       return res.status(400).json({ error: 'Query is required' });
     }
     
+    console.log('Processing query:', query);
+    
     // Retrieve similar response using FAISS
     const { matchedResponse } = await retrieveSimilarResponse(query);
+    console.log('Retrieved similar response:', matchedResponse);
     
     // Generate response using Gemini
+    console.log('Generating response with Gemini...');
     const response = await generateTherapyResponse(query, matchedResponse);
+    console.log('Response generated successfully:', response);
     
     res.json({ 
       response,
@@ -205,11 +258,26 @@ router.post('/query', async (req, res) => {
     });
   } catch (error) {
     console.error('Error processing therapy query:', error);
-    res.status(500).json({ error: 'Failed to process query', details: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to process query', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
+// Add a test endpoint
+router.get('/test', (req, res) => {
+  console.log('Test endpoint hit');
+  res.json({ message: 'Therapy route is working' });
+});
+
 // Initialize the system when the server starts
-initializeSystem().catch(console.error);
+console.log('Starting therapy route initialization...');
+initializeSystem().catch(error => {
+  console.error('Failed to initialize therapy system:', error);
+  console.error('Error stack:', error.stack);
+});
 
 module.exports = router; 

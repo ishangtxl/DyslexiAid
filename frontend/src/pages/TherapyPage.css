@@ -1,0 +1,148 @@
+.therapy-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'OpenDyslexic', Arial, sans-serif;
+}
+
+.therapy-container h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.input-section {
+  background-color: #f8f9fa;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.text-input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+  font-family: 'OpenDyslexic', Arial, sans-serif;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 1rem;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+  background-color: #357abd;
+}
+
+.submit-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.voice-section {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.voice-button {
+  padding: 1rem 2rem;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.voice-button:hover {
+  background-color: #27ae60;
+}
+
+.voice-button.listening {
+  background-color: #e74c3c;
+  animation: pulse 1.5s infinite;
+}
+
+.response-section {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.response-section h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.response-content {
+  line-height: 1.6;
+  font-size: 1.1rem;
+  color: #34495e;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Accessibility improvements */
+.text-input::placeholder {
+  color: #95a5a6;
+}
+
+button:focus {
+  outline: 3px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .therapy-container {
+    background-color: #000;
+    color: #fff;
+  }
+  
+  .input-section,
+  .response-section {
+    background-color: #000;
+    border: 2px solid #fff;
+  }
+  
+  .text-input {
+    background-color: #000;
+    color: #fff;
+    border-color: #fff;
+  }
+  
+  .submit-button,
+  .voice-button {
+    background-color: #fff;
+    color: #000;
+  }
+} 
