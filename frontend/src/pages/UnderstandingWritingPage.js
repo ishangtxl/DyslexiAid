@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI("AIzaSyDLRh5LHcyYpxQx6oHSKlsX_tj1Xap0Ods");
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
 const PageContainer = styled.div`
   max-width: 1000px;
@@ -28,51 +33,39 @@ const Description = styled.p`
   margin-bottom: ${props => props.theme.spacing.large};
 `;
 
-const ToolContainer = styled.div`
-  margin-top: ${props => props.theme.spacing.large};
-`;
-
-const TabsContainer = styled.div`
+const UploadContainer = styled.div`
   display: flex;
-  border-bottom: 1px solid ${props => props.theme.colors.highlight};
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed ${props => props.theme.colors.highlight};
+  border-radius: ${props => props.theme.borderRadius};
+  padding: ${props => props.theme.spacing.large};
   margin-bottom: ${props => props.theme.spacing.large};
-`;
-
-const Tab = styled.button`
-  padding: ${props => props.theme.spacing.medium};
-  background-color: ${props => props.active ? props.theme.colors.highlight : 'transparent'};
-  border: none;
-  border-bottom: 3px solid ${props => props.active ? props.theme.colors.primary : 'transparent'};
+  background-color: ${props => props.theme.colors.secondary};
   cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
-  color: ${props => props.theme.colors.text};
   transition: all 0.3s ease;
-
+  
   &:hover {
-    background-color: ${props => props.theme.colors.secondary};
+    border-color: ${props => props.theme.colors.primary};
+    background-color: ${props => props.theme.colors.highlight + '30'};
   }
 `;
 
-const TextAreaContainer = styled.div`
-  margin-bottom: ${props => props.theme.spacing.large};
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 200px;
-  padding: ${props => props.theme.spacing.medium};
-  font-size: 1.1rem;
-  border: 1px solid ${props => props.theme.colors.highlight};
-  border-radius: ${props => props.theme.borderRadius};
-  background-color: ${props => props.theme.colors.secondary};
-  font-family: ${props => props.theme.fonts.primary};
+const UploadIcon = styled.div`
+  font-size: 3rem;
   margin-bottom: ${props => props.theme.spacing.medium};
+  color: ${props => props.theme.colors.text};
 `;
 
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: ${props => props.theme.spacing.medium};
+const UploadText = styled.p`
+  font-size: 1.2rem;
+  margin-bottom: ${props => props.theme.spacing.small};
+`;
+
+const UploadSubtext = styled.p`
+  font-size: 0.9rem;
+  color: ${props => props.theme.colors.text + '80'};
 `;
 
 const Button = styled.button`
@@ -83,11 +76,32 @@ const Button = styled.button`
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 1.1rem;
+  width: 100%;
+  max-width: 300px;
+  margin: ${props => props.theme.spacing.medium} 0;
 
   &:hover {
     background-color: ${props => props.theme.colors.primary};
     color: white;
   }
+
+  &:disabled {
+    background-color: ${props => props.theme.colors.disabled};
+    cursor: not-allowed;
+  }
+`;
+
+const ImagePreviewContainer = styled.div`
+  margin: ${props => props.theme.spacing.large} 0;
+  text-align: center;
+`;
+
+const ImagePreview = styled.img`
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: ${props => props.theme.borderRadius};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 const ResultContainer = styled.div`
@@ -103,111 +117,223 @@ const ResultTitle = styled.h3`
   color: ${props => props.theme.colors.primary};
 `;
 
-const UnderstandingWritingPage = () => {
-  const [activeTab, setActiveTab] = useState('simplify');
-  const [text, setText] = useState('');
-  const [result, setResult] = useState(null);
+const ResultText = styled.textarea`
+  width: 100%;
+  min-height: 200px;
+  padding: ${props => props.theme.spacing.medium};
+  font-size: 1.1rem;
+  border: 1px solid ${props => props.theme.colors.highlight};
+  border-radius: ${props => props.theme.borderRadius};
+  background-color: white;
+  font-family: ${props => props.theme.fonts.primary};
+  margin-bottom: ${props => props.theme.spacing.medium};
+`;
 
-  const handleAnalyze = () => {
-    if (text.trim() === '') return;
+const LoadingSpinner = styled.div`
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: ${props => props.theme.colors.primary};
+  animation: spin 1s ease-in-out infinite;
+  margin: ${props => props.theme.spacing.large} 0;
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: #e74c3c;
+  background-color: #fadbd8;
+  padding: ${props => props.theme.spacing.medium};
+  border-radius: ${props => props.theme.borderRadius};
+  margin-bottom: ${props => props.theme.spacing.medium};
+`;
+
+const SuccessMessage = styled.div`
+  color: #27ae60;
+  background-color: #d4efdf;
+  padding: ${props => props.theme.spacing.medium};
+  border-radius: ${props => props.theme.borderRadius};
+  margin-bottom: ${props => props.theme.spacing.medium};
+`;
+
+const UnderstandingWritingPage = () => {
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [extractedText, setExtractedText] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     
-    // Mock results based on active tab
-    let mockResult;
-    switch(activeTab) {
-      case 'simplify':
-        mockResult = {
-          title: 'Simplified Text',
-          content: 'This is a simplified version of your text, using shorter sentences and clearer language.'
-        };
-        break;
-      case 'grammar':
-        mockResult = {
-          title: 'Grammar Check Results',
-          content: 'Your text looks good! We found 2 small grammar suggestions that have been highlighted in your text.'
-        };
-        break;
-      case 'spelling':
-        mockResult = {
-          title: 'Spelling Check Results',
-          content: 'We found 3 possible spelling errors. They have been highlighted in your text.'
-        };
-        break;
-      case 'summarize':
-        mockResult = {
-          title: 'Text Summary',
-          content: 'This is a brief summary of your text that captures the main ideas in a shorter format.'
-        };
-        break;
-      default:
-        mockResult = null;
+    // Reset states
+    setError('');
+    setSuccess('');
+    setExtractedText('');
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file (PNG, JPG, JPEG)');
+      return;
     }
     
-    setResult(mockResult);
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size should be less than 5MB');
+      return;
+    }
+    
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const extractTextFromImage = async () => {
+    if (!imageFile) return;
+    
+    setIsProcessing(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      // Convert the image file to base64
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const base64Data = e.target.result.split(',')[1];
+          
+          // Create content parts for the API request
+          const parts = [
+            {
+              text: "identify the disability and decrypt the text in the image. On decrypting, improvise it so that it makes sense. Return only the decrypted text and nothing else. I repeat, I want only the decrypted text."
+            },
+            {
+              inlineData: {
+                mimeType: imageFile.type,
+                data: base64Data
+              }
+            }
+          ];
+          
+          // Make API call to Gemini
+          const result = await model.generateContent(parts);
+          const text = result.response.text();
+          
+          setExtractedText(text);
+          setSuccess('✅ Text successfully extracted!');
+        } catch (error) {
+          console.error('Error processing image:', error);
+          setError(`Error processing image: ${error.message}`);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+      
+      reader.onerror = () => {
+        setError('Error reading file');
+        setIsProcessing(false);
+      };
+      
+      reader.readAsDataURL(imageFile);
+    } catch (error) {
+      console.error('Error:', error);
+      setError(`Error: ${error.message}`);
+      setIsProcessing(false);
+    }
+  };
+
+  const downloadText = () => {
+    if (!extractedText) return;
+    
+    const element = document.createElement('a');
+    const file = new Blob([extractedText], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = 'decrypted_text.txt';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
     <PageContainer>
-      <PageHeader>Understanding Writing</PageHeader>
+      <PageHeader>Handwriting Decoder</PageHeader>
       
       <ContentSection>
         <Description>
-          The Understanding Writing tool helps children with dyslexia overcome challenges in written expression
-          and comprehension. Dyslexia often makes it difficult to organize thoughts, use correct spelling and 
-          grammar, and understand complex text. Our AI-powered writing assistant offers several helpful features:
-          text simplification that breaks down complex sentences, grammar and spelling correction with dyslexia-specific
-          guidance, summarization to highlight key points, and word prediction to assist with writing flow.
-          By reducing the cognitive load associated with writing and reading comprehension, children can
-          focus on expressing their ideas clearly and understanding written material more effectively.
-          This tool builds confidence in written communication and helps develop independent writing skills.
+          Our Handwriting Decoder helps understand and convert dyslexic handwriting into clear, readable text. 
+          Simply upload an image of handwritten text, and our AI will analyze the writing patterns, identify 
+          potential dyslexic traits, and provide a clear interpretation of the content. This tool is especially 
+          helpful for teachers and parents to better understand a child's written expression and provide targeted support.
         </Description>
         
-        <ToolContainer>
-          <TabsContainer>
-            <Tab 
-              active={activeTab === 'simplify'} 
-              onClick={() => setActiveTab('simplify')}
-            >
-              Simplify Text
-            </Tab>
-            <Tab 
-              active={activeTab === 'grammar'} 
-              onClick={() => setActiveTab('grammar')}
-            >
-              Grammar Check
-            </Tab>
-            <Tab 
-              active={activeTab === 'spelling'} 
-              onClick={() => setActiveTab('spelling')}
-            >
-              Spelling Help
-            </Tab>
-            <Tab 
-              active={activeTab === 'summarize'} 
-              onClick={() => setActiveTab('summarize')}
-            >
-              Summarize
-            </Tab>
-          </TabsContainer>
-          
-          <TextAreaContainer>
-            <TextArea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type or paste your text here..."
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          accept="image/png, image/jpeg, image/jpg" 
+          onChange={handleFileSelect}
+        />
+        
+        <UploadContainer onClick={handleUploadClick}>
+          <UploadIcon>📤</UploadIcon>
+          <UploadText>Upload an Image</UploadText>
+          <UploadSubtext>Click to select or drop an image (PNG, JPG, JPEG)</UploadSubtext>
+        </UploadContainer>
+        
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+        {success && <SuccessMessage>{success}</SuccessMessage>}
+        
+        {imagePreview && (
+          <ImagePreviewContainer>
+            <ImagePreview src={imagePreview} alt="Uploaded handwriting" />
+          </ImagePreviewContainer>
+        )}
+        
+        <div style={{ textAlign: 'center' }}>
+          <Button 
+            onClick={extractTextFromImage} 
+            disabled={!imageFile || isProcessing}
+          >
+            {isProcessing ? 'Processing...' : '🔍 Decode Handwriting'}
+          </Button>
+        </div>
+        
+        {isProcessing && (
+          <div style={{ textAlign: 'center' }}>
+            <LoadingSpinner />
+            <p>Processing image, please wait...</p>
+          </div>
+        )}
+        
+        {extractedText && (
+          <ResultContainer>
+            <ResultTitle>📝 Extracted Text</ResultTitle>
+            <ResultText 
+              value={extractedText} 
+              readOnly 
             />
-            <ButtonContainer>
-              <Button onClick={handleAnalyze}>Analyze Text</Button>
-              <Button onClick={() => setText('')}>Clear Text</Button>
-            </ButtonContainer>
-          </TextAreaContainer>
-          
-          {result && (
-            <ResultContainer>
-              <ResultTitle>{result.title}</ResultTitle>
-              <p>{result.content}</p>
-            </ResultContainer>
-          )}
-        </ToolContainer>
+            <div style={{ textAlign: 'center' }}>
+              <Button onClick={downloadText}>
+                📄 Download as TXT
+              </Button>
+            </div>
+          </ResultContainer>
+        )}
       </ContentSection>
     </PageContainer>
   );
