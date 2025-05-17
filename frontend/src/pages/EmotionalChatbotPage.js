@@ -28,13 +28,21 @@ const PageContainer = styled.div`
 const PageHeader = styled.h1`
   color: ${props => props.theme.colors.primary};
   font-size: 2.5rem;
-  margin-bottom: ${props => props.theme.spacing.medium};
+  margin-bottom: ${props => props.theme.spacing.large};
   text-align: center;
   
   @media (max-height: 700px) {
     font-size: 2rem;
     margin-bottom: ${props => props.theme.spacing.small};
   }
+`;
+
+const PageFeatureImage = styled.img`
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  margin: 0 auto ${props => props.theme.spacing.large} auto;
 `;
 
 // Controls section at the top
@@ -939,7 +947,8 @@ const EmotionalChatbotPage = () => {
 
   return (
     <PageContainer>
-      <PageHeader>📚 Study Pal</PageHeader>
+      <PageHeader>Study Pal</PageHeader>
+      <PageFeatureImage src="/images/studypal.png" alt="Study Pal" />
       
       {/* Controls Section */}
       <ControlsSection>

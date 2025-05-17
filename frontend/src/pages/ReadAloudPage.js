@@ -15,6 +15,14 @@ const PageHeader = styled.h1`
   text-align: center;
 `;
 
+const PageFeatureImage = styled.img`
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  margin: 0 auto ${props => props.theme.spacing.large} auto;
+`;
+
 const ContentSection = styled.section`
   background-color: ${props => props.theme.colors.tile};
   border-radius: ${props => props.theme.borderRadius};
@@ -835,10 +843,10 @@ const ReadAloudPage = () => {
   return (
     <PageContainer>
       <PageHeader>Read Aloud</PageHeader>
-      
+      <PageFeatureImage src="/images/dyslexiaid-mascot.png" alt="Read Aloud" />
       <ContentSection>
         <Description>
-          The Read Aloud tool helps with reading by turning text into speech. Listen along as each word is highlighted and see pictures for words to help understand the meaning.
+          Welcome to the Read Aloud feature! You can type or paste text, or even upload an image containing text, and I'll read it out loud for you. As I read, I can also show you pictures related to the words to help with understanding and engagement. Adjust the voice, speed, and pitch to your liking.
         </Description>
         
         <TilesContainer>

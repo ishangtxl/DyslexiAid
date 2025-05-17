@@ -19,6 +19,14 @@ const PageHeader = styled.h1`
   text-align: center;
 `;
 
+const PageFeatureImage = styled.img`
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  margin: 0 auto ${props => props.theme.spacing.large} auto;
+`;
+
 const ContentSection = styled.section`
   background-color: ${props => props.theme.colors.tile};
   border-radius: ${props => props.theme.borderRadius};
@@ -272,13 +280,10 @@ const UnderstandingWritingPage = () => {
   return (
     <PageContainer>
       <PageHeader>Handwriting Decoder</PageHeader>
-      
+      <PageFeatureImage src="/images/hand.png" alt="Handwriting Decoder" />
       <ContentSection>
         <Description>
-          Our Handwriting Decoder helps understand and convert dyslexic handwriting into clear, readable text. 
-          Simply upload an image of handwritten text, and our AI will analyze the writing patterns, identify 
-          potential dyslexic traits, and provide a clear interpretation of the content. This tool is especially 
-          helpful for teachers and parents to better understand a child's written expression and provide targeted support.
+          Just upload a picture of the writing, and I'll do my best to read it for you. I'm going to help people understand your amazing ideas, even if the letters dance around a bit!
         </Description>
         
         <input 
