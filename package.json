@@ -1,0 +1,25 @@
+{
+  "name": "dyslexia-support-app",
+  "version": "1.0.0",
+  "description": "AI-assisted application for dyslexic children",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm start",
+    "install-backend": "cd backend && npm install",
+    "install-frontend": "cd frontend && npm install",
+    "install-all": "npm install && npm run install-backend && npm run install-frontend"
+  },
+  "keywords": [
+    "dyslexia",
+    "education",
+    "accessibility",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "concurrently": "^8.0.1"
+  }
+} 

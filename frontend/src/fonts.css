@@ -1,0 +1,38 @@
+/* OpenDyslexic Font */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://raw.githubusercontent.com/antijingoist/open-dyslexic/master/ttf/OpenDyslexic-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://raw.githubusercontent.com/antijingoist/open-dyslexic/master/ttf/OpenDyslexic-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://raw.githubusercontent.com/antijingoist/open-dyslexic/master/ttf/OpenDyslexic-Italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://raw.githubusercontent.com/antijingoist/open-dyslexic/master/ttf/OpenDyslexic-BoldItalic.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Ensure OpenDyslexic is applied globally */
+html, body, button, input, textarea, select {
+  font-family: 'OpenDyslexic', Arial, sans-serif !important;
+} 
+ 
