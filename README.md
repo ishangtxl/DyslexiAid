@@ -2,7 +2,7 @@
 
 DyslexiAid is a comprehensive web application designed to assist individuals with dyslexia in reading, writing, and emotional support. The application features several tools to help users overcome challenges related to dyslexia.
 
-![DyslexiAid Logo](/frontend/public/images/dyslexiaid-mascot.png)
+![DyslexiAid Logo](/frontend/public/dyslexiaid-logo.png)
 
 ## Features
 
