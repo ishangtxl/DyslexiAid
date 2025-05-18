@@ -839,7 +839,7 @@ const EmotionalChatbotPage = () => {
         "Focus on clarity, repetition, chunking, and encouragement."
         "Do not give words enclosed in asterisk. "
         "Make it as simple as possible, as if you're explaining to a kid who has just started learning that concept."
-        "Don't give people as examples. GIVE ONLY THE ANSWER. I REPEAT ONLY THE ANSWER. Generate 1 suitable image as well for the same and give that also in the answer.`;
+        "Don't give people as examples. GIVE ONLY THE ANSWER. I REPEAT ONLY THE ANSWER.`;
         
       const result = await model.generateContent(prompt);
       

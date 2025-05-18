@@ -1,19 +1,44 @@
-# Dyslexia Support Application
+# DyslexiAid
 
-An AI-assisted application designed to help children with dyslexia overcome challenges in reading, writing, and communication.
+DyslexiAid is a comprehensive web application designed to assist individuals with dyslexia in reading, writing, and emotional support. The application features several tools to help users overcome challenges related to dyslexia.
+
+![DyslexiAid Logo](/frontend/public/images/dyslexiaid-mascot.png)
 
 ## Features
 
-1. **Read Aloud** - Text-to-speech tools to help with reading difficulties
-2. **Emotional Chatbot** - AI companion for emotional support and understanding
-3. **Therapy Chatbot** - Guided therapy sessions to build confidence and skills
-4. **Understanding Writing** - Tools to help with writing and expressing ideas
+### 1. Read Aloud 📚
+- Text-to-speech functionality that reads content aloud
+- Customizable reading speed and voice options
+- Visual highlighting of text as it's being read
 
-## Tech Stack
+### 2. Study Pal 😊
+- AI-powered educational chatbot
+- Provides simplified explanations of complex topics
+- Uses dyslexia-friendly language and formatting
+- Voice input and output capabilities
 
-- **Frontend:** React.js with styled-components
-- **Backend:** Node.js with Express
-- **Styling:** Custom theme designed to be dyslexia-friendly
+### 3. Best Buddy 🧠
+- Emotional support chatbot for dyslexia-related challenges
+- Provides coping strategies and encouragement
+- Creates a safe space for expressing frustrations and difficulties
+
+### 4. Handwriting Decoder ✏️
+- Uploads images of handwritten text
+- Uses AI to decode and convert handwriting to digital text
+- Helps users understand handwritten notes or instructions
+
+## Technology Stack
+
+### Frontend
+- React.js
+- React Router for navigation
+- Styled Components for styling
+- Google Generative AI SDK for client-side AI features
+
+### Backend
+- Node.js
+- Express.js
+- Google Generative AI API integration
 
 ## Installation and Setup
 
@@ -26,26 +51,18 @@ An AI-assisted application designed to help children with dyslexia overcome chal
    ```
    cd dyslexia-app/backend
    ```
-
 2. Install dependencies:
    ```
    npm install
    ```
-
-3. Create a `.env` file based on `.env.example`:
+3. Create a `.env` file in the backend directory with the following variables:
    ```
    PORT=5000
-   NODE_ENV=development
+   GEMINI_API_KEY=your_gemini_api_key
    ```
-
-4. Start the server:
+4. Start the backend server:
    ```
    npm start
-   ```
-   
-   For development with auto-reload:
-   ```
-   npm run dev
    ```
 
 ### Frontend Setup
@@ -53,40 +70,74 @@ An AI-assisted application designed to help children with dyslexia overcome chal
    ```
    cd dyslexia-app/frontend
    ```
-
 2. Install dependencies:
    ```
    npm install
    ```
-
-3. Start the development server:
+3. Start the frontend development server:
    ```
    npm start
    ```
-
 4. The application will be available at `http://localhost:3000`
 
-## Project Structure
+## API Endpoints
 
-- `/frontend` - React.js frontend application
-  - `/src/components` - Reusable UI components
-  - `/src/pages` - Page components for each route
-  - `/src/styles` - Global styles and theme
-
-- `/backend` - Node.js backend server
-  - `/routes` - API route handlers
-  
-## Accessibility Features
-
-This application includes several features to make it more accessible for users with dyslexia:
-
-- Larger font sizes and increased letter spacing
-- Dyslexia-friendly color scheme with good contrast
-- Simple, clean interface with minimal distractions
-- Clear visual hierarchy and intuitive navigation
+- `/api/read-aloud` - Text-to-speech conversion
+- `/api/generate` - Educational content generation
+- `/api/emotional-chat` - Emotional support chatbot
+- `/api/therapy-session` - Therapy chatbot interactions
+- `/api/analyze-text` - Text analysis for dyslexic users
 
 ## Development
 
-- To add new features, create the necessary components and update the routing in `App.js`
-- For backend changes, add or modify routes in the `/routes` directory
-- Ensure all UI components follow the established design system for consistency 
+### Project Structure
+```
+dyslexia-app/
+├── backend/
+│   ├── data/
+│   ├── routes/
+│   │   ├── api.js
+│   │   └── therapy.js
+│   └── server.js
+└── frontend/
+    ├── public/
+    └── src/
+        ├── components/
+        ├── pages/
+        │   ├── HomePage.js
+        │   ├── ReadAloudPage.js
+        │   ├── EmotionalChatbotPage.js
+        │   ├── TherapyChatbotPage.js
+        │   └── UnderstandingWritingPage.js
+        └── styles/
+```
+
+## Accessibility Features
+
+- Dyslexia-friendly font options
+- Customizable text size and spacing
+- High contrast mode
+- Read aloud functionality
+- Voice input for reduced typing needs
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add some amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a pull request
+
+## License
+
+This project is licensed under the MIT License
+
+## Contact
+
+For questions or support, please open an issue in the GitHub repository. 
+
+#FUTURE SCOPE
+
+## Learning agent
+
+[Link to the repository for the learning agent](https://github.com/RamblingFlyer/eduthon-learning-pathway-agent)
