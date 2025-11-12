@@ -1,6 +1,63 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Tesseract from 'tesseract.js';
+import { getCustomImage } from '../utils/customDictionary';
+
+// Stopwords - common filler words that shouldn't trigger image fetching
+const STOPWORDS = new Set([
+  // Articles
+  'a', 'an', 'the',
+  // Prepositions
+  'in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'of', 'about', 'as',
+  'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between',
+  'under', 'over', 'against', 'among', 'within', 'without', 'throughout',
+  // Conjunctions
+  'and', 'but', 'or', 'nor', 'yet', 'so', 'because', 'although', 'though',
+  'while', 'if', 'unless', 'since', 'until', 'when', 'where', 'whether',
+  // Pronouns
+  'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
+  'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours', 'hers',
+  'ours', 'theirs', 'myself', 'yourself', 'himself', 'herself', 'itself',
+  'ourselves', 'yourselves', 'themselves',
+  // Auxiliary/modal verbs
+  'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being',
+  'have', 'has', 'had', 'having',
+  'do', 'does', 'did', 'doing',
+  'can', 'could', 'will', 'would', 'should', 'shall', 'may', 'might', 'must',
+  // Demonstratives
+  'this', 'that', 'these', 'those',
+  // Question words
+  'who', 'what', 'where', 'when', 'why', 'how', 'which', 'whose', 'whom',
+  // Common adverbs
+  'very', 'really', 'quite', 'just', 'only', 'even', 'also', 'too', 'so',
+  'then', 'now', 'here', 'there', 'already', 'always', 'never', 'often',
+  'sometimes', 'usually', 'however', 'therefore', 'thus', 'hence',
+  // Other common words
+  'all', 'some', 'any', 'many', 'much', 'more', 'most', 'few', 'less', 'least',
+  'both', 'each', 'every', 'either', 'neither', 'other', 'another', 'such',
+  'no', 'not', 'yes', 'than'
+]);
+
+// Helper function to check if a word should fetch an image
+const shouldFetchImageForWord = (word) => {
+  if (!word) return false;
+
+  const normalizedWord = word.toLowerCase().trim();
+
+  // Skip very short words (1-2 characters)
+  if (normalizedWord.length <= 2) return false;
+
+  // Skip if it's a stopword
+  if (STOPWORDS.has(normalizedWord)) return false;
+
+  // Skip words that are just numbers
+  if (/^\d+$/.test(normalizedWord)) return false;
+
+  // Skip words with special characters (likely punctuation)
+  if (/[^a-z'-]/i.test(normalizedWord)) return false;
+
+  return true;
+};
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -213,7 +270,11 @@ const ImagePreview = styled.div`
   box-shadow: ${props => props.theme.shadow};
   margin-top: ${props => props.theme.spacing.medium};
   text-align: center;
-  display: ${props => props.show ? 'block' : 'none'};
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 `;
 
 const Image = styled.img`
@@ -295,97 +356,84 @@ const TabEmoji = styled.span`
   font-size: 1.2rem;
 `;
 
-const SliderContainer = styled.div`
-  margin-bottom: ${props => props.theme.spacing.medium};
-  width: 100%;
-`;
-
 const SpeedBar = styled.div`
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: ${props => props.theme.spacing.medium};
   width: 100%;
   position: relative;
+`;
+
+const SpeedValue = styled.div`
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: ${props => props.theme.colors.primary};
+  min-width: 60px;
+  text-align: center;
 `;
 
 const EmojiIndicator = styled.div`
   font-size: 1.5rem;
-  position: absolute;
-  top: 15px;
   filter: contrast(1.5) saturate(1.2);
   text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.5);
-  background-color: ${props => props.theme.colors.secondary};
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 0;
 `;
 
 const SlowEmoji = styled(EmojiIndicator)`
-  left: -25px;
   transform: scaleX(-1);
 `;
 
 const FastEmoji = styled(EmojiIndicator)`
-  right: -25px;
   transform: scaleX(-1);
 `;
 
-const SliderTrack = styled.div`
-  position: relative;
-  width: 100%;
-  height: 2px;
-  background-color: ${props => props.theme.colors.highlight};
-  margin: 24px 0 12px;
-  z-index: 1;
-`;
-
-const SliderMarkers = styled.div`
+const SliderContainer = styled.div`
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  width: 100%;
-  position: relative;
-`;
-
-const SliderMarker = styled.div`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: ${props => props.active ? props.theme.colors.primary : props.theme.colors.highlight};
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: -5px;
-  
-  &:hover {
-    background-color: ${props => props.theme.colors.primary};
-  }
-`;
-
-const SliderLabels = styled.div`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 8px;
-  font-size: 0.85rem;
-`;
-
-const SliderLabel = styled.div`
-  text-align: center;
-  color: ${props => props.active ? props.theme.colors.primary : props.theme.colors.text};
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  align-items: center;
+  gap: ${props => props.theme.spacing.small};
 `;
 
 const SliderInput = styled.input`
-  position: absolute;
-  top: -8px;
   width: 100%;
-  height: 20px;
-  opacity: 0;
   cursor: pointer;
-  z-index: 2;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: ${props => props.theme.colors.highlight};
+  outline: none;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${props => props.theme.colors.primary};
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${props => props.theme.colors.primary};
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
 `;
 
 const ReadAloudPage = () => {
@@ -400,7 +448,6 @@ const ReadAloudPage = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
-  const [showImage, setShowImage] = useState(false);
   const [activeTab, setActiveTab] = useState('text'); // 'text', 'image', 'file'
   const [uploadedImage, setUploadedImage] = useState(null);
   const [ocrProgress, setOcrProgress] = useState(0);
@@ -484,18 +531,36 @@ const ReadAloudPage = () => {
     setProcessedText(tokens);
   }, [text]);
   
-  // Fetch image for a word from Unsplash
+  // Fetch image for a word - checks custom dictionary first, then Unsplash API
   const fetchImage = async (word) => {
     if (!word) return;
-    
+
+    // 1. First, check custom dictionary
+    const customImage = getCustomImage(word);
+    if (customImage) {
+      console.log(`Using custom image for "${word}"`);
+      return customImage;
+    }
+
+    // 2. Fallback to Unsplash API
     try {
-      const ACCESS_KEY = 'F4nLejAZww7_NC1DB8SF7pf0CKQLQhr9kBaZ0w9TISI'; // This would be better stored securely
+      const ACCESS_KEY = 'F4nLejAZww7_NC1DB8SF7pf0CKQLQhr9kBaZ0w9TISI';
       const encodedQuery = encodeURIComponent(word);
       const response = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodedQuery}&per_page=1&client_id=${ACCESS_KEY}`
       );
       const data = await response.json();
       return data.results && data.results.length > 0 ? data.results[0].urls.small : null;
+
+      /* PIXABAY API (commented out)
+      const API_KEY = '53205352-d7dfbeb193f72fd75a8ddbdaf';
+      const encodedQuery = encodeURIComponent(word);
+      const response = await fetch(
+        `https://pixabay.com/api/?key=${API_KEY}&q=${encodedQuery}&image_type=photo&per_page=3&safesearch=true`
+      );
+      const data = await response.json();
+      return data.hits && data.hits.length > 0 ? data.hits[0].webformatURL : null;
+      */
     } catch (error) {
       console.error('Error fetching image:', error);
       return null;
@@ -504,10 +569,17 @@ const ReadAloudPage = () => {
   
   // Handle word hover/click to show image
   const handleWordHover = async (word) => {
+    // Only fetch images for meaningful words (not filler words)
+    if (!shouldFetchImageForWord(word)) {
+      setImageUrl(null);
+      return;
+    }
+
     const imageUrl = await fetchImage(word);
     if (imageUrl) {
       setImageUrl(imageUrl);
-      setShowImage(true);
+    } else {
+      setImageUrl(null);
     }
   };
   
@@ -553,7 +625,7 @@ const ReadAloudPage = () => {
       newUtterance.onend = () => {
         setIsPlaying(false);
         setCurrentWord(null);
-        setShowImage(false);
+        setImageUrl(null);
       };
       
       // Update reference and speak
@@ -626,7 +698,7 @@ const ReadAloudPage = () => {
     utterance.onend = () => {
       setIsPlaying(false);
       setCurrentWord(null);
-      setShowImage(false);
+      setImageUrl(null);
     };
     
     utteranceRef.current = utterance;
@@ -657,7 +729,7 @@ const ReadAloudPage = () => {
     setIsPlaying(false);
     setIsPaused(false);
     setCurrentWord(null);
-    setShowImage(false);
+    setImageUrl(null);
   };
   
   // Handle file upload
@@ -897,39 +969,19 @@ const ReadAloudPage = () => {
               <Label>Speed:</Label>
               <SpeedBar>
                 <SlowEmoji>🚶</SlowEmoji>
-                <SliderTrack>
+                <SliderContainer>
                   <SliderInput
                     id="speed-slider"
                     type="range"
-                    min="0.25"
+                    min="0.1"
                     max="2"
-                    step="0.25"
+                    step="0.1"
                     value={rate}
                     onChange={(e) => setRate(parseFloat(e.target.value))}
                   />
-                  <SliderMarkers>
-                    {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
-                      <SliderMarker 
-                        key={speed} 
-                        active={rate === speed}
-                        onClick={() => setRate(speed)}
-                        style={{ left: `${((speed - 0.25) / 1.75) * 100}%` }}
-                      />
-                    ))}
-                  </SliderMarkers>
-                </SliderTrack>
+                </SliderContainer>
                 <FastEmoji>🏃</FastEmoji>
-                <SliderLabels>
-                  {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
-                    <SliderLabel 
-                      key={speed} 
-                      active={rate === speed}
-                      onClick={() => setRate(speed)}
-                    >
-                      {speed}x
-                    </SliderLabel>
-                  ))}
-                </SliderLabels>
+                <SpeedValue>{rate.toFixed(1)}x</SpeedValue>
               </SpeedBar>
             </ControlsTile>
             
@@ -976,13 +1028,15 @@ const ReadAloudPage = () => {
                   }
                 })}
               </TextDisplay>
-              
-              <ImagePreview show={showImage}>
-                {imageUrl && (
+
+              <ImagePreview>
+                {imageUrl ? (
                   <>
                     <p>Visual for current word:</p>
                     <Image src={imageUrl} alt="Word visualization" />
                   </>
+                ) : (
+                  <p style={{ color: '#999' }}>Visual for current word will appear here</p>
                 )}
               </ImagePreview>
             </PlayerTile>

@@ -9,6 +9,7 @@ import ReadAloudPage from './pages/ReadAloudPage';
 import EmotionalChatbotPage from './pages/EmotionalChatbotPage';
 import TherapyChatbotPage from './pages/TherapyChatbotPage';
 import UnderstandingWritingPage from './pages/UnderstandingWritingPage';
+import DictionarySettingsPage from './pages/DictionarySettingsPage';
 
 // Import our custom fonts
 import './fonts.css';
@@ -25,6 +26,7 @@ function App() {
           <Route path="/emotional-chatbot" element={<EmotionalChatbotPage />} />
           <Route path="/therapy-chatbot" element={<TherapyChatbotPage />} />
           <Route path="/understanding-writing" element={<UnderstandingWritingPage />} />
+          <Route path="/dictionary" element={<DictionarySettingsPage />} />
         </Routes>
       </Router>
     </ThemeProvider>

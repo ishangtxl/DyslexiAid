@@ -1,13 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Initialize the Generative AI with API key
-const genAI = new GoogleGenerativeAI("AIzaSyDLRh5LHcyYpxQx6oHSKlsX_tj1Xap0Ods");
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash',
-  generationConfig: { maxOutputTokens: 800 }  // Increased token limit for longer responses
-});
+import axios from 'axios';
 
 // Main container
 const PageContainer = styled.div`
@@ -828,54 +821,20 @@ const TherapyChatbotPage = () => {
     }
   };
 
-  // Function to generate response using Gemini AI
+  // Function to generate response via backend API
   async function generateResponse(userQuery) {
     if (!userQuery || userQuery.trim() === "") return;
-    
+
     try {
-      const prompt = `User: ${userQuery}
-      Therapist (focused on helping a dyslexic person): 
-      Response (specific and tailored for dyslexic individuals):
-      Focus on building a safe and supportive space.
-      Acknowledge the child's feelings and validate their struggles.
-      Emphasize that it's a different way of learning, not a disability.
-      Showcase successful people with dyslexia.
-      Motivate the child by demonstrating achievement is possible.
-      Highlight the importance of support and tools.
-      Briefly mention resources like audiobooks, specialized tutors, or assistive technologies.
-      End on a positive and empowering note.
-      Remind the child of their strengths and potential.
-      Use positive and affirming language throughout.
-      Maintain a conversational and approachable tone.
-      Encourage the child to ask questions and express their feelings.
-      Give the response in 120 to 150 words and stick to the query and remember the child is dyslexic`;
-        
-      const result = await model.generateContent(prompt);
-      
-      // Process response to extract text and any images
-      const response = {
-        text: result.response.text(),
+      const result = await axios.post('/api/therapy', { query: userQuery });
+
+      return {
+        text: result.data.text,
         images: []
       };
-      
-      // Check if there are any parts (potentially containing images)
-      if (result.response.parts && result.response.parts.length > 0) {
-        for (const part of result.response.parts) {
-          // If the part is an image
-          if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
-            // Extract the base64 image data
-            const imageData = part.inlineData.data;
-            const mimeType = part.inlineData.mimeType;
-            const imageUrl = `data:${mimeType};base64,${imageData}`;
-            response.images.push(imageUrl);
-          }
-        }
-      }
-      
-      return response;
     } catch (err) {
-      console.error('Gemini AI error:', err?.message || err);
-      throw new Error(err?.message || 'Failed to generate response');
+      console.error('API error:', err?.message || err);
+      throw new Error(err?.response?.data?.message || 'Failed to generate response');
     }
   }
   

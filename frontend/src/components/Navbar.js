@@ -6,7 +6,8 @@ const NavContainer = styled.nav`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${props => props.theme.spacing.medium};
+  padding: 0 ${props => props.theme.spacing.medium};
+  height: 80px;
   background-color: ${props => props.theme.colors.highlight};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
@@ -14,12 +15,14 @@ const NavContainer = styled.nav`
 const Logo = styled(Link)`
   display: flex;
   align-items: center;
+  height: 100%;
   color: ${props => props.theme.colors.primary};
   text-decoration: none;
 `;
 
 const LogoImage = styled.img`
-  height: 50px;
+  height: 100%;
+  width: auto;
   object-fit: contain;
 `;
 
@@ -55,6 +58,7 @@ const Navbar = () => {
         <NavLink to="/emotional-chatbot">Study Pal</NavLink>
         <NavLink to="/therapy-chatbot">Best Buddy</NavLink>
         <NavLink to="/understanding-writing">Handwriting decoder</NavLink>
+        <NavLink to="/dictionary">Word Dictionary</NavLink>
       </NavLinks>
     </NavContainer>
   );

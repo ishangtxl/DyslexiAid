@@ -1,10 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI("AIzaSyDLRh5LHcyYpxQx6oHSKlsX_tj1Xap0Ods");
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+import axios from 'axios';
 
 const PageContainer = styled.div`
   max-width: 1000px;
@@ -212,51 +208,40 @@ const UnderstandingWritingPage = () => {
 
   const extractTextFromImage = async () => {
     if (!imageFile) return;
-    
+
     setIsProcessing(true);
     setError('');
     setSuccess('');
-    
+
     try {
       // Convert the image file to base64
       const reader = new FileReader();
-      
+
       reader.onload = async (e) => {
         try {
           const base64Data = e.target.result.split(',')[1];
-          
-          // Create content parts for the API request
-          const parts = [
-            {
-              text: "identify the disability and decrypt the text in the image. On decrypting, improvise it so that it makes sense. Return only the decrypted text and nothing else. I repeat, I want only the decrypted text."
-            },
-            {
-              inlineData: {
-                mimeType: imageFile.type,
-                data: base64Data
-              }
-            }
-          ];
-          
-          // Make API call to Gemini
-          const result = await model.generateContent(parts);
-          const text = result.response.text();
-          
-          setExtractedText(text);
+
+          // Call backend API
+          const result = await axios.post('/api/decode-handwriting', {
+            image: base64Data,
+            mimeType: imageFile.type
+          });
+
+          setExtractedText(result.data.text);
           setSuccess('✅ Text successfully extracted!');
         } catch (error) {
           console.error('Error processing image:', error);
-          setError(`Error processing image: ${error.message}`);
+          setError(`Error processing image: ${error.response?.data?.message || error.message}`);
         } finally {
           setIsProcessing(false);
         }
       };
-      
+
       reader.onerror = () => {
         setError('Error reading file');
         setIsProcessing(false);
       };
-      
+
       reader.readAsDataURL(imageFile);
     } catch (error) {
       console.error('Error:', error);

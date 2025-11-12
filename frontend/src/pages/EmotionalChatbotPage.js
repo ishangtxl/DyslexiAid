@@ -1,13 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Initialize the Generative AI with API key
-const genAI = new GoogleGenerativeAI("AIzaSyDLRh5LHcyYpxQx6oHSKlsX_tj1Xap0Ods");
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash',
-  generationConfig: { maxOutputTokens: 800 }  // Increased token limit for longer responses
-});
+import axios from 'axios';
 
 // Main container
 const PageContainer = styled.div`
@@ -828,45 +821,20 @@ const EmotionalChatbotPage = () => {
     }
   };
 
-  // Function to generate response using Gemini AI
+  // Function to generate response via backend API
   async function generateResponse(userQuery) {
     if (!userQuery || userQuery.trim() === "") return;
-    
+
     try {
-      const prompt = `${userQuery}\n
-        "You're an educational assistant for a child with dyslexia. "
-        "Use simple language, no images, 120-word limit. "
-        "Focus on clarity, repetition, chunking, and encouragement."
-        "Do not give words enclosed in asterisk. "
-        "Make it as simple as possible, as if you're explaining to a kid who has just started learning that concept."
-        "Don't give people as examples. GIVE ONLY THE ANSWER. I REPEAT ONLY THE ANSWER.`;
-        
-      const result = await model.generateContent(prompt);
-      
-      // Process response to extract text and any images
-      const response = {
-        text: result.response.text(),
+      const result = await axios.post('/api/generate', { query: userQuery });
+
+      return {
+        text: result.data.text,
         images: []
       };
-      
-      // Check if there are any parts (potentially containing images)
-      if (result.response.parts && result.response.parts.length > 0) {
-        for (const part of result.response.parts) {
-          // If the part is an image
-          if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
-            // Extract the base64 image data
-            const imageData = part.inlineData.data;
-            const mimeType = part.inlineData.mimeType;
-            const imageUrl = `data:${mimeType};base64,${imageData}`;
-            response.images.push(imageUrl);
-          }
-        }
-      }
-      
-      return response;
     } catch (err) {
-      console.error('Gemini AI error:', err?.message || err);
-      throw new Error(err?.message || 'Failed to generate response');
+      console.error('API error:', err?.message || err);
+      throw new Error(err?.response?.data?.message || 'Failed to generate response');
     }
   }
   
