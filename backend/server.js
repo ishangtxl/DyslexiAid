@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const apiRoutes = require('./routes/api');
 
-// Load env variables
-dotenv.config();
+// Load env variables FIRST, before requiring routes
+dotenv.config({ path: __dirname + '/.env' });
+console.log('GEMINI_API_KEY loaded:', process.env.GEMINI_API_KEY?.substring(0, 10));
+
+// NOW require routes after env is loaded
+const apiRoutes = require('./routes/api');
 
 const app = express();
 const PORT = process.env.PORT || 5000;

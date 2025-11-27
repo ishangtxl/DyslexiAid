@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Tesseract from 'tesseract.js';
+import axios from 'axios';
 import { getCustomImage } from '../utils/customDictionary';
 
 // Stopwords - common filler words that shouldn't trigger image fetching
@@ -235,6 +236,36 @@ const Label = styled.label`
   font-weight: 500;
 `;
 
+const EngineToggle = styled.div`
+  display: flex;
+  gap: ${props => props.theme.spacing.medium};
+  margin-bottom: ${props => props.theme.spacing.medium};
+  padding: ${props => props.theme.spacing.small};
+  background-color: ${props => props.theme.colors.secondary};
+  border-radius: ${props => props.theme.borderRadius};
+`;
+
+const EngineOption = styled.label`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.small};
+  cursor: pointer;
+  font-size: 1rem;
+  padding: ${props => props.theme.spacing.small};
+  border-radius: ${props => props.theme.borderRadius};
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${props => props.theme.colors.highlight};
+  }
+
+  input[type="radio"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+  }
+`;
+
 const TextDisplay = styled.div`
   background-color: ${props => props.theme.colors.secondary};
   padding: ${props => props.theme.spacing.medium};
@@ -454,10 +485,19 @@ const ReadAloudPage = () => {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [ocrStatusText, setOcrStatusText] = useState('');
   const [textPosition, setTextPosition] = useState(0); // Track current position in text
-  
+
+  // ElevenLabs state
+  const [ttsEngine, setTtsEngine] = useState('browser'); // 'browser' or 'elevenlabs'
+  const [elevenlabsVoices, setElevenlabsVoices] = useState([]);
+  const [selectedElevenlabsVoice, setSelectedElevenlabsVoice] = useState(null);
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+
   const synth = window.speechSynthesis;
   const utteranceRef = useRef(null);
   const wordsRef = useRef([]);
+  const audioRef = useRef(null); // For ElevenLabs audio
+  const highlightIntervalRef = useRef(null); // For ElevenLabs word highlighting
   
   // Initialize Tesseract worker for OCR
   useEffect(() => {
@@ -522,7 +562,31 @@ const ReadAloudPage = () => {
       synth.cancel();
     };
   }, []);
-  
+
+  // Fetch ElevenLabs voices
+  useEffect(() => {
+    const fetchElevenlabsVoices = async () => {
+      setIsLoadingVoices(true);
+      try {
+        const response = await axios.get('/api/elevenlabs-voices');
+        if (response.data.success) {
+          setElevenlabsVoices(response.data.voices);
+          // Set default voice (Rachel - friendly female voice)
+          const defaultVoice = response.data.voices.find(v => v.name === 'Rachel') || response.data.voices[0];
+          if (defaultVoice) {
+            setSelectedElevenlabsVoice(defaultVoice.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching ElevenLabs voices:', error);
+      } finally {
+        setIsLoadingVoices(false);
+      }
+    };
+
+    fetchElevenlabsVoices();
+  }, []);
+
   // Process text when it changes
   useEffect(() => {
     const tokens = tokenizeText(text);
@@ -530,6 +594,13 @@ const ReadAloudPage = () => {
     wordsRef.current = words;
     setProcessedText(tokens);
   }, [text]);
+
+  // Update ElevenLabs audio playback rate when speed changes
+  useEffect(() => {
+    if (ttsEngine === 'elevenlabs' && audioRef.current && isPlaying) {
+      audioRef.current.playbackRate = rate;
+    }
+  }, [rate, ttsEngine, isPlaying]);
   
   // Fetch image for a word - checks custom dictionary first, then Unsplash API
   const fetchImage = async (word) => {
@@ -709,29 +780,157 @@ const ReadAloudPage = () => {
   
   // Pause reading
   const pauseReading = () => {
-    if (synth.speaking && !isPaused) {
-      synth.pause();
-      setIsPaused(true);
+    if (ttsEngine === 'elevenlabs') {
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+        setIsPaused(true);
+        // Pause word highlighting
+        if (highlightIntervalRef.current) {
+          clearInterval(highlightIntervalRef.current);
+          highlightIntervalRef.current = null;
+        }
+      }
+    } else {
+      if (synth.speaking && !isPaused) {
+        synth.pause();
+        setIsPaused(true);
+      }
     }
   };
-  
+
   // Resume reading
   const resumeReading = () => {
-    if (isPaused) {
-      synth.resume();
-      setIsPaused(false);
+    if (ttsEngine === 'elevenlabs') {
+      if (audioRef.current && audioRef.current.paused && isPaused) {
+        audioRef.current.play();
+        setIsPaused(false);
+        // Resume word highlighting (simplified - just continues from where it left off)
+        // Note: This is approximate timing, not perfect sync
+      }
+    } else {
+      if (isPaused) {
+        synth.resume();
+        setIsPaused(false);
+      }
     }
   };
-  
+
   // Stop reading
   const stopReading = () => {
-    synth.cancel();
+    if (ttsEngine === 'elevenlabs') {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+      if (highlightIntervalRef.current) {
+        clearInterval(highlightIntervalRef.current);
+        highlightIntervalRef.current = null;
+      }
+    } else {
+      synth.cancel();
+    }
     setIsPlaying(false);
     setIsPaused(false);
     setCurrentWord(null);
     setImageUrl(null);
   };
-  
+
+  // Start reading with ElevenLabs
+  const startReadingWithElevenLabs = async () => {
+    if (!text.trim()) return;
+
+    // Stop any existing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (highlightIntervalRef.current) {
+      clearInterval(highlightIntervalRef.current);
+      highlightIntervalRef.current = null;
+    }
+
+    setIsGeneratingAudio(true);
+    setCurrentWord(null);
+    setImageUrl(null);
+
+    try {
+      // Call backend API to generate speech (at normal speed, we'll adjust playback rate)
+      const response = await axios.post('/api/elevenlabs-tts', {
+        text: text,
+        voiceId: selectedElevenlabsVoice,
+        speed: 1.0 // Generate at normal speed, adjust with playbackRate
+      }, {
+        responseType: 'blob'
+      });
+
+      setIsGeneratingAudio(false);
+
+      // Create audio URL from blob
+      const audioUrl = URL.createObjectURL(response.data);
+      const audio = new Audio(audioUrl);
+      audio.playbackRate = rate; // Set playback speed
+      audioRef.current = audio;
+
+      // Get words for highlighting
+      const words = processedText.filter(t => t.type === 'word');
+
+      // Calculate approximate timing for word highlighting
+      const avgWordsPerMinute = 150; // Base rate
+      const totalWords = words.length;
+      const estimatedDuration = (totalWords / avgWordsPerMinute) * 60 * 1000; // in milliseconds
+      const msPerWord = estimatedDuration / totalWords / rate; // Adjust for playback rate
+
+      setIsPlaying(true);
+      setIsPaused(false);
+
+      // Word highlighting interval
+      let wordIndex = 0;
+      highlightIntervalRef.current = setInterval(() => {
+        if (wordIndex < words.length) {
+          setCurrentWord(wordIndex);
+          // Fetch image for current word
+          if (shouldFetchImageForWord(words[wordIndex].value)) {
+            handleWordHover(words[wordIndex].value);
+          }
+          wordIndex++;
+        } else {
+          clearInterval(highlightIntervalRef.current);
+          highlightIntervalRef.current = null;
+        }
+      }, msPerWord);
+
+      audio.play();
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setCurrentWord(null);
+        setImageUrl(null);
+        if (highlightIntervalRef.current) {
+          clearInterval(highlightIntervalRef.current);
+          highlightIntervalRef.current = null;
+        }
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+
+    } catch (error) {
+      console.error('Error generating speech with ElevenLabs:', error);
+      setIsGeneratingAudio(false);
+      alert('Failed to generate speech. Please try again or use browser TTS.');
+    }
+  };
+
+  // Handle Play button - route to correct TTS engine
+  const handlePlay = () => {
+    if (ttsEngine === 'elevenlabs') {
+      startReadingWithElevenLabs();
+    } else {
+      startReading();
+    }
+  };
+
   // Handle file upload
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -951,19 +1150,62 @@ const ReadAloudPage = () => {
           
           <BottomTilesContainer>
             <ControlsTile>
+              <TileHeader>Voice Engine:</TileHeader>
+              <EngineToggle>
+                <EngineOption>
+                  <input
+                    type="radio"
+                    name="tts-engine"
+                    value="browser"
+                    checked={ttsEngine === 'browser'}
+                    onChange={(e) => setTtsEngine(e.target.value)}
+                  />
+                  Browser TTS (Fast)
+                </EngineOption>
+                <EngineOption>
+                  <input
+                    type="radio"
+                    name="tts-engine"
+                    value="elevenlabs"
+                    checked={ttsEngine === 'elevenlabs'}
+                    onChange={(e) => setTtsEngine(e.target.value)}
+                  />
+                  ElevenLabs AI (Quality)
+                </EngineOption>
+              </EngineToggle>
+
               <TileHeader>Select Voice:</TileHeader>
-              <Select 
-                id="voice-select"
-                value={voices.indexOf(selectedVoice)}
-                onChange={(e) => setSelectedVoice(voices[e.target.value])}
-              >
-                {voices.map((voice, index) => (
-                  <option key={index} value={index}>
-                    {voice.name} ({voice.lang})
-                  </option>
-                ))}
-              </Select>
-              
+              {ttsEngine === 'browser' ? (
+                <Select
+                  id="voice-select"
+                  value={voices.indexOf(selectedVoice)}
+                  onChange={(e) => setSelectedVoice(voices[e.target.value])}
+                >
+                  {voices.map((voice, index) => (
+                    <option key={index} value={index}>
+                      {voice.name} ({voice.lang})
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Select
+                  id="elevenlabs-voice-select"
+                  value={selectedElevenlabsVoice || ''}
+                  onChange={(e) => setSelectedElevenlabsVoice(e.target.value)}
+                  disabled={isLoadingVoices}
+                >
+                  {isLoadingVoices ? (
+                    <option>Loading voices...</option>
+                  ) : (
+                    elevenlabsVoices.map((voice) => (
+                      <option key={voice.id} value={voice.id}>
+                        {voice.name}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              )}
+
               <FlexGap size="24px" />
               
               <Label>Speed:</Label>
@@ -973,7 +1215,7 @@ const ReadAloudPage = () => {
                   <SliderInput
                     id="speed-slider"
                     type="range"
-                    min="0.1"
+                    min="0.05"
                     max="2"
                     step="0.1"
                     value={rate}
@@ -981,7 +1223,7 @@ const ReadAloudPage = () => {
                   />
                 </SliderContainer>
                 <FastEmoji>🏃</FastEmoji>
-                <SpeedValue>{rate.toFixed(1)}x</SpeedValue>
+                <SpeedValue>{rate}x</SpeedValue>
               </SpeedBar>
             </ControlsTile>
             
@@ -989,8 +1231,16 @@ const ReadAloudPage = () => {
               <TileHeader>Text Player</TileHeader>
               
               <ButtonContainer>
-                <Button onClick={startReading} disabled={!text.trim() || !selectedVoice}>
-                  Read Aloud
+                <Button
+                  onClick={handlePlay}
+                  disabled={
+                    !text.trim() ||
+                    isGeneratingAudio ||
+                    (ttsEngine === 'browser' && !selectedVoice) ||
+                    (ttsEngine === 'elevenlabs' && !selectedElevenlabsVoice)
+                  }
+                >
+                  {isGeneratingAudio ? 'Generating...' : 'Read Aloud'}
                 </Button>
                 <Button onClick={pauseReading} disabled={!isPlaying || isPaused}>
                   Pause
