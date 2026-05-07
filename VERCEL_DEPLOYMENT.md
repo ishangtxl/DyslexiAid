@@ -34,11 +34,11 @@ git push origin main
 In the Vercel dashboard, go to your project settings → Environment Variables and add:
 
 **For Production:**
-- `GEMINI_API_KEY`: `AIzaSyB4NLsW1nKztrFDAI6qtL3n1Py2vMflUb8`
-- `ELEVENLABS_API_KEY`: `sk_7611984098ea783b04fe57af76d6616fa6b5dfdb2f1eedd3`
+- `GEMINI_API_KEY`: `<your-gemini-api-key>` — get one at https://aistudio.google.com/apikey
+- `ELEVENLABS_API_KEY`: `<your-elevenlabs-api-key>` — get one at https://elevenlabs.io/app/settings/api-keys
 - `PORT`: `5001`
 
-**Important:** Add these to all environments (Production, Preview, Development)
+**Important:** Add these to all environments (Production, Preview, Development). Never commit real keys to the repo — Vercel's environment variable storage is the only place they should live.
 
 #### Step 4: Deploy
 Click "Deploy" and wait for the build to complete.
