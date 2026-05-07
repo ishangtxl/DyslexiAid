@@ -3,6 +3,14 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 
+// Simple greeting endpoint
+router.get('/hi', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Hi! DyslexiAid is here to help you learn and grow.'
+  });
+});
+
 // Initialize Google Generative AI with API key from env
 console.log('API Key (first 10 chars):', process.env.GEMINI_API_KEY?.substring(0, 10));
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
