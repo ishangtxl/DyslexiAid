@@ -9,9 +9,12 @@ This is the backend server for the Dyslexia App.
 npm install
 ```
 
-2. Create a `.env` file in the backend directory with your Gemini API key:
+2. Create a `.env` file in the backend directory with provider keys and local CORS settings:
 ```
 GEMINI_API_KEY=your_gemini_api_key_here
+ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
+CORS_ORIGINS=http://localhost:3000
 ```
 
 3. Start the server:

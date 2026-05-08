@@ -602,7 +602,7 @@ const ReadAloudPage = () => {
     }
   }, [rate, ttsEngine, isPlaying]);
   
-  // Fetch image for a word - checks custom dictionary first, then Unsplash API
+  // Fetch image for a word - checks custom dictionary first, then backend image proxy
   const fetchImage = async (word) => {
     if (!word) return;
 
@@ -613,25 +613,12 @@ const ReadAloudPage = () => {
       return customImage;
     }
 
-    // 2. Fallback to Unsplash API
+    // 2. Fallback to backend proxy so provider API keys stay server-side
     try {
-      const ACCESS_KEY = 'F4nLejAZww7_NC1DB8SF7pf0CKQLQhr9kBaZ0w9TISI';
-      const encodedQuery = encodeURIComponent(word);
-      const response = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodedQuery}&per_page=1&client_id=${ACCESS_KEY}`
-      );
-      const data = await response.json();
-      return data.results && data.results.length > 0 ? data.results[0].urls.small : null;
-
-      /* PIXABAY API (commented out)
-      const API_KEY = '53205352-d7dfbeb193f72fd75a8ddbdaf';
-      const encodedQuery = encodeURIComponent(word);
-      const response = await fetch(
-        `https://pixabay.com/api/?key=${API_KEY}&q=${encodedQuery}&image_type=photo&per_page=3&safesearch=true`
-      );
-      const data = await response.json();
-      return data.hits && data.hits.length > 0 ? data.hits[0].webformatURL : null;
-      */
+      const response = await axios.get('/api/image-search', {
+        params: { query: word }
+      });
+      return response.data?.imageUrl || null;
     } catch (error) {
       console.error('Error fetching image:', error);
       return null;

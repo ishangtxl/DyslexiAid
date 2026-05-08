@@ -61,6 +61,9 @@ DyslexiAid is a comprehensive web application designed to assist individuals wit
    ```
    PORT=5000
    GEMINI_API_KEY=your_gemini_api_key
+   ELEVENLABS_API_KEY=your_elevenlabs_api_key
+   UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+   CORS_ORIGINS=http://localhost:3000
    ```
 4. Start the backend server:
    ```
