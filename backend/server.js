@@ -20,9 +20,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS configuration - more permissive for development
+// CORS is intentionally permissive during development so the React app can
+// call this API from localhost, Vercel previews, or other temporary origins.
+// Tighten this to explicit production domains before using credentialed auth.
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: true, // Reflect the request origin instead of enforcing an allowlist
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
