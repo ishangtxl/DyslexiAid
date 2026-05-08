@@ -8,6 +8,7 @@ console.log('GEMINI_API_KEY loaded:', process.env.GEMINI_API_KEY?.substring(0, 1
 
 // NOW require routes after env is loaded
 const apiRoutes = require('./routes/api');
+const versionRoutes = require('./routes/version');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api', apiRoutes);
+app.use('/api/version', versionRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
