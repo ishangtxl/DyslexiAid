@@ -251,4 +251,9 @@ router.get('/elevenlabs-voices', async (req, res) => {
   }
 });
 
+// Echo endpoint - returns the posted JSON body
+router.post('/echo', (req, res) => {
+  res.json({ echo: req.body });
+});
+
 module.exports = router; 
