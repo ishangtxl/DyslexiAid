@@ -36,6 +36,8 @@ In the Vercel dashboard, go to your project settings → Environment Variables a
 **For Production:**
 - `GEMINI_API_KEY`: `<your-gemini-api-key>` — get one at https://aistudio.google.com/apikey
 - `ELEVENLABS_API_KEY`: `<your-elevenlabs-api-key>` — get one at https://elevenlabs.io/app/settings/api-keys
+- `UNSPLASH_ACCESS_KEY`: `<your-unsplash-access-key>` — used server-side by the image search proxy
+- `CORS_ORIGINS`: `<your-frontend-origin>` — comma-separated if multiple origins are needed
 - `PORT`: `5001`
 
 **Important:** Add these to all environments (Production, Preview, Development). Never commit real keys to the repo — Vercel's environment variable storage is the only place they should live.
@@ -70,6 +72,8 @@ vercel --prod
 ```bash
 vercel env add GEMINI_API_KEY
 vercel env add ELEVENLABS_API_KEY
+vercel env add UNSPLASH_ACCESS_KEY
+vercel env add CORS_ORIGINS
 vercel env add PORT
 ```
 
